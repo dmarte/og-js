@@ -1,4 +1,5 @@
 import { isNumber, toArray, toPlainObject, toSafeInteger, toString } from 'lodash';
+import { isObject } from 'vuetify/lib/util/helpers';
 import OgCollection from '../http/OgCollection';
 import OgResource from '../http/OgResource';
 import OgResourceCast from './OgResourceCast';
@@ -7,6 +8,13 @@ import OgResourceDateCast from './OgResourceDateCast';
 export default class OgCast {
     static cast(api, key, casts = {}, value = null) {
         if (!casts[key]) {
+            return value;
+        }
+
+        if (
+            isObject(value) &&
+            (value instanceof OgResource || value instanceof OgCollection || value instanceof OgResourceCast)
+        ) {
             return value;
         }
 
@@ -24,8 +32,8 @@ export default class OgCast {
             return new Proxy(new Type(api).setItems(!Array.isArray(value) ? [] : value), {
                 get(target, p, receiver) {
 
-                    if(typeof p === 'string' && /^[\d]$/s.test(p)) {
-                        return target.findByIndex(p)
+                    if (typeof p === 'string' && /^[\d]$/s.test(p)) {
+                        return target.findByIndex(p);
                     }
 
                     return Reflect.get(target, p, receiver);
@@ -33,12 +41,12 @@ export default class OgCast {
 
                 set(target, p, value, receiver) {
 
-                    if(typeof p === 'string' && /^[\d]$/s.test(p)) {
-                        return target.add(value, p)
+                    if (typeof p === 'string' && /^[\d]$/s.test(p)) {
+                        return target.add(value, p);
                     }
 
                     return Reflect.set(target, p, receiver);
-                }
+                },
             });
         }
 
