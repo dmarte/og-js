@@ -41,6 +41,31 @@ export default class OgApiResponse {
      * @returns {boolean}
      */
     fail(field) {
+
+        if(Array.isArray(field)) {
+            return field.some((k) => this.fail(k));
+        }
+
+        // For paths like foo.*.var to match foo.0.var
+        if (/\.[*]\./gi.test(field)) {
+
+            return Object.keys(this.$feedbacks).some((key) => {
+
+                const matched = key.match(/\.[0-9]\./);
+
+                if (!matched || matched.length < 1) {
+                    return false;
+                }
+
+                const index = matched.pop().replace(/[^0-9]/gs, '');
+
+                field = field.replace(/[*]/s, index);
+
+                return this.fail(field)
+
+            });
+        }
+
         return !!this.$feedbacks[field];
     }
 

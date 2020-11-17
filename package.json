@@ -1,0 +1,8 @@
+{
+  "name": "og-sdk",
+  "version": "1.0.0",
+  "dependencies": {
+      "luxon": "^1.25.0",
+      "lodash": "^4.17.20"
+  }
+}
