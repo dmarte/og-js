@@ -63,12 +63,10 @@ export default class OgAuth extends OgQueryBuilder {
         return this;
     }
 
-    async register(name, email, password) {
+    async register(data = {}, path = 'register') {
 
-        this.$response = await this.$api.post('register', {
-            name,
-            email,
-            password,
+        this.$response = await this.$api.post(path, {
+            ...data,
             device: window.location.hostname,
         });
 
@@ -77,8 +75,6 @@ export default class OgAuth extends OgQueryBuilder {
             throw new Error(this.$response.message);
 
         }
-
-        await this.loginWithSanctum(email, password);
 
         return this;
     }
@@ -183,7 +179,6 @@ export default class OgAuth extends OgQueryBuilder {
      * @returns {OgAuth}
      */
     setUser(object) {
-
         this.$user = new this.USER_RESOURCE(
             this.$api,
             object,
@@ -214,6 +209,8 @@ export default class OgAuth extends OgQueryBuilder {
      */
     use(resource) {
         this.$settings.USER_RESOURCE = resource;
+        this.setTokenFromSession();
+        this.setUserFromSession();
         return this;
     }
 

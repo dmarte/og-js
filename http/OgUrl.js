@@ -48,7 +48,14 @@ export default class OgUrl {
      * @returns {null|*|null}
      */
     getBindingValue(key) {
-        return this.$bindings.find(({ name }) => name === key).value || null;
+
+        const binding = this.$bindings.find(({ name }) => name === key);
+
+        if (binding && binding.value) {
+            return bindding.value;
+        }
+
+        return null;
     }
 
     /**
@@ -66,7 +73,7 @@ export default class OgUrl {
      */
     toURL(path) {
 
-        if(path.charAt(0) === '/') {
+        if (path.charAt(0) === '/') {
             return new URL(this.buildPathBinding(path, this.$bindings), this.$base);
         }
 

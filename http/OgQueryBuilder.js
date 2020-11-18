@@ -6,7 +6,7 @@ export default class OgQueryBuilder extends OgQueryString {
     }
 
     with(key) {
-        this.where('with', key);
+        this.where('with', key,true);
         return this;
     }
 
