@@ -52,7 +52,7 @@ export default class OgUrl {
         const binding = this.$bindings.find(({ name }) => name === key);
 
         if (binding && binding.value) {
-            return bindding.value;
+            return binding.value;
         }
 
         return null;
