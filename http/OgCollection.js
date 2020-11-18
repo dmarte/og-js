@@ -158,24 +158,43 @@ export default class OgCollection extends OgQueryBuilder {
     }
 
     async paginate(page = 1, perPage = 15, sortBy = 'id', sortDesc = true) {
-        this.$asDropdown = false;
+
         this.$paginate.perPage = perPage;
+
         this.$paginate.currentPage = page;
+
         this.$loading = true;
-        this.wherePagination(this.$paginate).sortBy(sortBy, sortDesc);
-        const response = await this.$api.get(this.$path, super.toQueryString());
+
+        super.page(this.$paginate.currentPage);
+
+        super.perPage(this.$paginate.perPage);
+
+        super.sortBy(sortBy, sortDesc);
+
+        const response = await this.$api.get(this.$path, super.toJSON());
+
         if (response.failed) {
+
             throw new Error(response.message);
+
         }
+
         if (response.data.meta) {
+
             this.$paginate.fill(response.data.meta);
+
         }
+
         if (Array.isArray(response.data.data)) {
+
             this.reset();
+
             const Resource = this.collector;
+
             this.$elements = response.data.data.map(
                 item => new Resource(this.$api, item),
             );
+
         }
         this.$loading = false;
         return this;

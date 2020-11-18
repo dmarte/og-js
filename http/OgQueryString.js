@@ -1,4 +1,5 @@
 import { set } from 'lodash';
+import { isPlainObject } from 'lodash';
 import OgUrl from './OgUrl';
 
 export default class OgQueryString extends OgUrl {
@@ -39,11 +40,12 @@ export default class OgQueryString extends OgUrl {
      * @returns {OgQueryString}
      */
     where(path, value = undefined, uniqueKey = false) {
+
         if (!path) {
             return this;
         }
 
-        if(path instanceof OgQueryString) {
+        if (path instanceof OgQueryString) {
             value = path.toJSON();
             Object.keys(value).forEach((key) => {
                 this.where(key, value[key], uniqueKey);
@@ -51,7 +53,7 @@ export default class OgQueryString extends OgUrl {
             return this;
         }
 
-        if (path instanceof Object) {
+        if (isPlainObject(path)) {
             Object.keys(path).forEach(p => this.where(p, path[p], uniqueKey));
             return this;
         }
@@ -60,10 +62,24 @@ export default class OgQueryString extends OgUrl {
             this.$query.append(OgQueryString.toQuery(path), value);
             return this;
         }
+
         if (this.has(path)) {
             this.remove(path);
         }
+
+        if (isPlainObject(value)) {
+
+            Object.keys(value).forEach((key) => {
+
+                this.where(`${path}.${key}`, value[key]);
+
+            });
+
+            return this;
+        }
+
         this.$query.set(OgQueryString.toQuery(path), value);
+
         return this;
     }
 
