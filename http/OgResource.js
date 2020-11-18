@@ -1,4 +1,4 @@
-import { set, get, isObject, isFunction } from 'lodash';
+import { set, get, merge } from 'lodash';
 import OgCast from '../casts/OgCast';
 import OgResourceCast from '../casts/OgResourceCast';
 import OgQueryBuilder from './OgQueryBuilder';
@@ -312,7 +312,6 @@ export default class OgResource extends OgQueryBuilder {
             this.cast(path, casts[path]);
         });
         this.defaults(defaults);
-        this.$attributes = this.SCHEMA;
         return this;
     }
 
@@ -323,7 +322,8 @@ export default class OgResource extends OgQueryBuilder {
      * @returns {OgResource}
      */
     defaults(attributes) {
-        this.$defaults = attributes;
+        this.$defaults = merge(this.$defaults, attributes);
+        this.$attributes = this.SCHEMA;
         return this;
     }
 
@@ -470,10 +470,6 @@ export default class OgResource extends OgQueryBuilder {
 
             if (value instanceof OgResource) {
                 set(schema, path, value.SCHEMA);
-            }
-
-            if(value instanceof OgResourceCast) {
-                set(schema, path, castedValue.toJSON());
             }
 
         });

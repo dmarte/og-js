@@ -16,7 +16,7 @@ export default class OgUrl {
      * @returns {Boolean}
      **/
     has(holder) {
-        return this.$bindings.some(({ name }) => name === String(holder).toLowerCase());
+        return this.$bindings.some(({ name }) => name.toLowerCase() === String(holder).toLowerCase());
     }
 
     /**
@@ -42,6 +42,16 @@ export default class OgUrl {
     }
 
     /**
+     * Get the value previously configured for a given url binding key.
+     *
+     * @param {String} key
+     * @returns {null|*|null}
+     */
+    getBindingValue(key) {
+        return this.$bindings.find(({ name }) => name === key).value || null;
+    }
+
+    /**
      * Generate the string path.
      * @returns {string}
      */
@@ -55,6 +65,11 @@ export default class OgUrl {
      * @returns {URL}
      */
     toURL(path) {
+
+        if(path.charAt(0) === '/') {
+            return new URL(this.buildPathBinding(path, this.$bindings), this.$base);
+        }
+
         return new URL([this.path, this.buildPathBinding(path, this.$bindings)].join('/'), this.$base);
     }
 
