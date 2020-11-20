@@ -163,13 +163,17 @@ export default class OgCollection extends OgQueryBuilder {
 
         this.$paginate.currentPage = page;
 
+        this.$paginate.sortBy = sortBy;
+
+        this.$paginate.sortDesc = sortDesc;
+
         this.$loading = true;
 
         super.page(this.$paginate.currentPage);
 
         super.perPage(this.$paginate.perPage);
 
-        super.sortBy(sortBy, sortDesc);
+        super.sortBy(this.$paginate.sortBy, this.$paginate.sortDesc);
 
         const response = await this.$api.get(this.$path, super.toJSON());
 
@@ -266,15 +270,26 @@ export default class OgCollection extends OgQueryBuilder {
      *
      * @param {String} pathText
      * @param {String} pathValue
+     * @param {String} emptyText
+     * @param {*} emptyValue
      * @returns {{text, value: *}[]}
      */
-    pluck(pathText, pathValue) {
-        return this.items.map(item => {
-            return {
-                value: _.get(item, pathValue || 'id', null),
-                text: _.get(item, pathText || 'text', null),
-            };
-        });
+    pluck(pathText, pathValue, emptyText = null, emptyValue = null) {
+        const items = [];
+
+        if (emptyText) {
+            items.push({
+                value: emptyValue,
+                text: emptyText,
+            });
+        }
+
+        this.items.forEach((item) => items.push({
+            value: _.get(item, pathValue || 'id', null),
+            text: _.get(item, pathText || 'text', null),
+        }));
+
+        return items;
     }
 
     toJsonItems() {

@@ -30,4 +30,5 @@ export default class OgQueryBuilder extends OgQueryString {
         this.where('pagination.per_page', numberOfPages, true);
         return this;
     }
+
 }
