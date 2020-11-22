@@ -1,6 +1,7 @@
 import OgApiResponse from '../http/OgApiResponse';
 import OgCookie from '../data/OgCookie';
 import OgSession from '../data/OgSession';
+import OgResource from '../http/OgResource';
 import OgUserResource from './OgUserResource';
 import OgQueryBuilder from '../http/OgQueryBuilder';
 
@@ -132,7 +133,6 @@ export default class OgAuth extends OgQueryBuilder {
         }
 
         if (this.$session.has(this.KEY_USER)) {
-
             this.setUserFromSession();
 
             return this.$user;
@@ -179,10 +179,7 @@ export default class OgAuth extends OgQueryBuilder {
      * @returns {OgAuth}
      */
     setUser(object) {
-        this.$user = new this.USER_RESOURCE(
-            this.$api,
-            object,
-        );
+        this.$user = OgResource.build(this.$api, this.USER_RESOURCE, object);
 
         return this;
     }
@@ -247,9 +244,5 @@ export default class OgAuth extends OgQueryBuilder {
         }
 
         return !this.$session.has(this.KEY_TOKEN);
-    }
-
-    get logged() {
-        return !this.guest || this.id;
     }
 }

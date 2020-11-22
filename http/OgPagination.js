@@ -1,3 +1,4 @@
+import { toSafeInteger } from 'lodash';
 export default class OgPagination {
     /**
      * @param {Object} attributes
@@ -42,7 +43,7 @@ export default class OgPagination {
     }
 
     getPerPageFromMeta(meta) {
-        return parseInt(meta.perPage) || parseInt(meta.per_page) || this.PER_PAGE;
+        return  toSafeInteger(meta.per_page) || toSafeInteger(meta.perPage) || this.PER_PAGE;
     }
 
     getCurrentPageFromMeta(meta) {

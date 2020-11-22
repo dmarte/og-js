@@ -48,7 +48,6 @@ export default class OgUrl {
      * @returns {null|*|null}
      */
     getBindingValue(key) {
-
         const binding = this.$bindings.find(({ name }) => name === key);
 
         if (binding && binding.value) {

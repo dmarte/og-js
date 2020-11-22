@@ -1,53 +1,73 @@
-import { isNumber, toArray, toPlainObject, toSafeInteger, toString } from 'lodash';
-import { isObject } from 'vuetify/lib/util/helpers';
+import { toArray, toPlainObject, toSafeInteger, toString } from 'lodash';
 import OgCollection from '../http/OgCollection';
 import OgResource from '../http/OgResource';
 import OgResourceCast from './OgResourceCast';
 import OgResourceDateCast from './OgResourceDateCast';
 
 export default class OgCast {
+
+    static root(path) {
+        path = String(path);
+
+        const index = path.indexOf('.');
+
+        return index < 0 ? path : path.substr(0, index);
+    }
+
+    static suffix(path) {
+
+        path = String(path);
+
+        const index = path.indexOf('.');
+
+        if (index < 0) {
+            return path;
+        }
+
+        return path.substr(index + 1);
+    }
+
+    static pathIsResource(path, casts = {}) {
+
+        path = OgCast.root(path);
+
+        return casts[path] ? OgCast.isResource(casts[path]) : false;
+    }
+
+    static isResource(value) {
+        return Object.prototype.isPrototypeOf.call(OgResource, value);
+    }
+
+    static isCollection(value) {
+        return Object.prototype.isPrototypeOf.call(OgCollection, value);
+    }
+
+    static isCast(value) {
+        return Object.prototype.isPrototypeOf.call(OgResourceCast, value);
+    }
+
     static cast(api, key, casts = {}, value = null) {
+
         if (!casts[key]) {
             return value;
         }
 
-        if (
-            isObject(value) &&
-            (value instanceof OgResource || value instanceof OgCollection || value instanceof OgResourceCast)
-        ) {
+        if (value instanceof OgResource || value instanceof OgCollection || value instanceof OgResourceCast) {
             return value;
         }
 
         const Type = casts[key];
 
-        if (Object.prototype.isPrototypeOf.call(OgResourceCast, Type)) {
-            return new Type(api, value);
+        if (OgCast.isCast(Type)) {
+            return OgResourceCast.build(api, Type, value);
         }
 
-        if (Object.prototype.isPrototypeOf.call(OgResource, Type)) {
-            return new Type(api, value);
+        if (OgCast.isResource(Type)) {
+            return OgResource.build(api, Type, value);
         }
 
-        if (Object.prototype.isPrototypeOf.call(OgCollection, Type)) {
-            return new Proxy(new Type(api).setItems(!Array.isArray(value) ? [] : value), {
-                get(target, p, receiver) {
-
-                    if (typeof p === 'string' && /^[\d]$/s.test(p)) {
-                        return target.findByIndex(p);
-                    }
-
-                    return Reflect.get(target, p, receiver);
-                },
-
-                set(target, p, value, receiver) {
-
-                    if (typeof p === 'string' && /^[\d]$/s.test(p)) {
-                        return target.add(value, p);
-                    }
-
-                    return Reflect.set(target, p, receiver);
-                },
-            });
+        if (OgCast.isCollection(Type)) {
+            return OgCollection.build(api, Type, value);
         }
 
         let output;
@@ -66,10 +86,7 @@ export default class OgCast {
                 output = parseFloat(value) || 0.0;
                 break;
             case OgCast.TYPE_ID:
-                output = parseInt(value, 10) || null;
-                break;
-            case OgCast.TYPE_DATE:
-                output = new OgResourceDateCast(api, value);
+                output = value || '';
                 break;
             case OgCast.TYPE_ARRAY:
                 if (!Array.isArray(value)) {

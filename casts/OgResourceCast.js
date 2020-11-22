@@ -12,6 +12,29 @@ export default class OgResourceCast {
         this.$api = api;
     }
 
+    static build(api, type, value) {
+        return new Proxy(new type(api, value), {
+            // Allow use ResourceCast as arrays
+            get(target, p, receiver) {
+
+                if (typeof p === 'string' && /^[\d]$/s.test(p)) {
+                    return target.value[p] || null;
+                }
+
+                return Reflect.get(target, p, receiver);
+            },
+
+            set(target, p, value, receiver) {
+
+                if (typeof p === 'string' && /^[\d]$/s.test(p)) {
+                    return target.$value[p] = value;
+                }
+
+                return Reflect.set(target, p, receiver);
+            },
+        });
+    }
+
     get api() {
         return this.$api;
     }

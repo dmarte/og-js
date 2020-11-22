@@ -1,6 +1,7 @@
 import _ from 'lodash';
 import OgQueryBuilder from './OgQueryBuilder';
 import OgPagination from './OgPagination';
+import OgResource from './OgResource';
 
 export default class OgCollection extends OgQueryBuilder {
     /**
@@ -19,6 +20,29 @@ export default class OgCollection extends OgQueryBuilder {
         this.scope();
     }
 
+    static build(api, collection, items) {
+        return new Proxy(new collection(api).setItems(!Array.isArray(items) ? [] : items), {
+            // Allow use OgCollection as arrays
+            get(target, p, receiver) {
+
+                if (typeof p === 'string' && /^[\d]$/s.test(p)) {
+                    return target.findByIndex(p);
+                }
+
+                return Reflect.get(target, p, receiver);
+            },
+
+            set(target, p, value, receiver) {
+
+                if (typeof p === 'string' && /^[\d]$/s.test(p)) {
+                    return target.add(value, p);
+                }
+
+                return Reflect.set(target, p, receiver);
+            },
+        });
+    }
+
     abort() {
         this.$api.abort();
         return this;
@@ -27,7 +51,6 @@ export default class OgCollection extends OgQueryBuilder {
     reset() {
         super.reset();
         this.$loading = false;
-        this.paginator.reset();
         this.scope();
         return this;
     }
@@ -41,7 +64,7 @@ export default class OgCollection extends OgQueryBuilder {
             item => item.primaryKeyValue === primaryKeyValue,
         );
         if (!resource) {
-            return new this.$collector(this.$api);
+            return OgResource.build(this.$api, this.$collector, this.$collector.$defaults);
         }
 
         return resource;
@@ -58,7 +81,7 @@ export default class OgCollection extends OgQueryBuilder {
      */
     findByIndex(index) {
         if (!this.items[index]) {
-            return new this.$collector(this.$api);
+            return OgResource.build(this.$api, this.$collector, this.$collector.$defaults);
         }
 
         return this.items[index];
@@ -68,7 +91,7 @@ export default class OgCollection extends OgQueryBuilder {
      * @returns {OgResource}
      */
     first() {
-        return this.items[0] || new this.$collector(this.$api);
+        return this.items[0] || this.findByPrimaryKey();
     }
 
     /**
@@ -91,13 +114,23 @@ export default class OgCollection extends OgQueryBuilder {
      * @returns {Promise<OgCollection>}
      */
     async deleteFromResource(resource) {
+
         this.$loading = true;
-        await resource.delete();
-        this.$loading = false;
-        if (resource.$response.failed) {
-            throw new Error(resource.$response.message);
+
+        if (resource.primaryKeyValue) {
+            await resource.delete();
         }
+
+        this.$loading = false;
+
+        if (resource.$response.failed) {
+
+            throw new Error(resource.$response.message);
+
+        }
+
         this.remove(resource);
+
         return this;
     }
 
@@ -157,11 +190,15 @@ export default class OgCollection extends OgQueryBuilder {
         return this;
     }
 
-    async paginate(page = 1, perPage = 15, sortBy = 'id', sortDesc = true) {
+    async paginate(page = null, perPage = null, sortBy = 'id', sortDesc = true) {
 
-        this.$paginate.perPage = perPage;
+        if (perPage) {
+            this.perPage(perPage);
+        }
 
-        this.$paginate.currentPage = page;
+        if (page) {
+            this.currentPage(page);
+        }
 
         this.$paginate.sortBy = sortBy;
 
@@ -178,7 +215,7 @@ export default class OgCollection extends OgQueryBuilder {
         const response = await this.$api.get(this.$path, super.toJSON());
 
         if (response.failed) {
-
+            this.$loading = false;
             throw new Error(response.message);
 
         }
@@ -196,7 +233,7 @@ export default class OgCollection extends OgQueryBuilder {
             const Resource = this.collector;
 
             this.$elements = response.data.data.map(
-                item => new Resource(this.$api, item),
+                item => OgResource.build(this.$api, Resource, item),
             );
 
         }
@@ -209,21 +246,31 @@ export default class OgCollection extends OgQueryBuilder {
      *
      * @returns {Promise<{success: [], failed: [], ok: boolean}>}
      */
-    async save() {
+    async saveEachOne() {
+
         this.$loading = true;
-        const failed = [];
-        const success = [];
-        await this.items.forEach(async (item, index) => {
-            try {
-                await item.save();
-                success.push({ index });
-            } catch (ex) {
-                failed.push({ index, message: ex.message });
-            }
-        });
+
+        const responses = [];
+
+        await Promise.all(
+            this.items.map(async (item, index) => {
+                responses.push({
+                    index,
+                    failed: !await item.save(),
+                    response: item.response,
+                });
+            }),
+        );
+
         this.$loading = false;
 
-        return { failed, success, ok: failed.length < 1 };
+        const ok = !responses.some(({ response }) => response.failed);
+
+        return {
+            responses,
+            ok,
+            message: ok ? 'All resources saved.' : 'There was an error saving your changes.',
+        };
     }
 
     /**
@@ -234,13 +281,17 @@ export default class OgCollection extends OgQueryBuilder {
      * @returns {boolean}
      */
     remove(item) {
+
         const index = this.$elements.findIndex(
             ({ primaryKeyValue }) => primaryKeyValue === item.primaryKeyValue,
         );
+
         if (index < 0) {
             return false;
         }
+
         this.$elements.splice(index, 1);
+
         return true;
     }
 
@@ -253,6 +304,11 @@ export default class OgCollection extends OgQueryBuilder {
      */
     perPage(value) {
         this.paginator.perPage = value;
+        return this;
+    }
+
+    currentPage(value) {
+        this.paginator.currentPage = value;
         return this;
     }
 
@@ -305,23 +361,31 @@ export default class OgCollection extends OgQueryBuilder {
 
     setItems(items = []) {
         const Collector = this.$collector;
-        this.$elements = items.map(item => new Collector(this.$api, item));
+        this.$elements = items.map(item => OgResource.build(this.$api, Collector, item));
         return this;
     }
 
     add(item, index = undefined) {
+
         const Collector = this.$collector;
-        const instance = new Collector(this.$api, item);
+
+        const instance = OgResource.build(this.$api, Collector, item);
+
         if (index) {
+
             this.$elements.splice(index, 1, instance);
+
         } else {
+
             this.$elements.push(instance);
+
         }
-        return this;
+
+        return instance;
     }
 
     /**
-     * @param {OgResource|Object} item
+     * @param {Object} item
      * @returns {OgCollection}
      */
     push(item) {

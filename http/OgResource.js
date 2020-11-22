@@ -1,4 +1,4 @@
-import { set, get, merge } from 'lodash';
+import { set, get, merge, isString } from 'lodash';
 import OgCast from '../casts/OgCast';
 import OgResourceCast from '../casts/OgResourceCast';
 import OgQueryBuilder from './OgQueryBuilder';
@@ -32,8 +32,50 @@ export default class OgResource extends OgQueryBuilder {
             creating: false,
             deleting: false,
         };
+
         this.fill(attributes);
     }
+
+    static build(api, resource, attributes) {
+        return new resource(api, attributes);
+    }
+
+    /*
+     static build(api, resource, attributes) {
+
+     return new Proxy(new resource(api, attributes), {
+     get(target, property, receiver) {
+
+     if (isString(property) && target.isFillable(property)) {
+
+     return target.get(property);
+
+     }
+
+     return Reflect.get(target, property, receiver);
+     },
+
+     set(target, path, value) {
+
+
+     if (target.isFillable(path)) {
+     target.set(path, value);
+
+     } else {
+
+     Reflect.set(target, path, value);
+
+     }
+
+     return true;
+     },
+
+     ownKeys(target) {
+     return Object.keys(target);
+     },
+     });
+     }
+     */
 
     /**
      * Merge one resource with another resource.
@@ -55,10 +97,30 @@ export default class OgResource extends OgQueryBuilder {
      * @returns {*}
      */
     clone(resource) {
+
         if (resource instanceof OgResource) {
+
             return new resource.constructor(this.$api, this.toJSON());
+
         }
+
         return new resource(this.$api, this.toJSON());
+    }
+
+    async duplicate(attributes) {
+
+        const resource = this.clone(this);
+
+        resource.set(this.$primaryKey, null);
+
+        resource.fill(attributes);
+
+        if (!await resource.save()) {
+
+            throw new Error(resource.response.save);
+        }
+
+        return resource;
     }
 
     /**
@@ -75,7 +137,7 @@ export default class OgResource extends OgQueryBuilder {
 
         }
 
-        this._resetStatus();
+        this.resetStatus();
 
         this.$response.reset();
 
@@ -91,7 +153,7 @@ export default class OgResource extends OgQueryBuilder {
             throw new Error(this.$response.message);
         }
 
-        this._resetStatus();
+        this.resetStatus();
 
         this.fill(this.$response.data);
 
@@ -110,25 +172,36 @@ export default class OgResource extends OgQueryBuilder {
 
         this.$api.contentTypeJson();
 
-        this._resetStatus();
+        this.resetStatus();
 
         this.$response.reset();
 
         this.$status.creating = true;
 
-        this.$response = await this.$api.post(
-            this.$path,
-            this.toJSON(),
-        );
+        try {
+
+            this.$response = await this.$api.post(
+                this.$path,
+                this.toJSON(),
+            );
+
+        } catch (ex) {
+
+            console.error(ex.message);
+
+            this.resetStatus();
+
+        }
+
+        this.resetStatus();
 
         if (this.$response.failed) {
-            this._resetStatus();
+
             throw new Error(this.$response.message);
+
         }
 
         this.fill(this.$response.data);
-
-        this.$status.creating = false;
 
         return this;
     }
@@ -141,7 +214,7 @@ export default class OgResource extends OgQueryBuilder {
 
         this.$api.contentTypeJson();
 
-        this._resetStatus();
+        this.resetStatus();
 
         this.$response.reset();
 
@@ -156,7 +229,7 @@ export default class OgResource extends OgQueryBuilder {
 
         if (this.$response.failed) {
 
-            this._resetStatus();
+            this.resetStatus();
 
             throw new Error(this.$response.message);
 
@@ -164,7 +237,7 @@ export default class OgResource extends OgQueryBuilder {
 
         this.fill(this.$response.data);
 
-        this._resetStatus();
+        this.resetStatus();
 
         return this;
     }
@@ -184,7 +257,7 @@ export default class OgResource extends OgQueryBuilder {
 
         this.$api.contentTypeJson();
 
-        this._resetStatus();
+        this.resetStatus();
 
         this.$response.reset();
 
@@ -198,11 +271,11 @@ export default class OgResource extends OgQueryBuilder {
         });
 
         if (this.$response.failed) {
-            this._resetStatus();
+            this.resetStatus();
             throw new Error(this.$response.message);
         }
 
-        this._resetStatus();
+        this.resetStatus();
 
         return this;
     }
@@ -223,11 +296,15 @@ export default class OgResource extends OgQueryBuilder {
             } else {
 
                 await this.create();
+
             }
 
             return true;
 
         } catch (ex) {
+
+            console.error(ex.message);
+
             return false;
         }
     }
@@ -269,7 +346,7 @@ export default class OgResource extends OgQueryBuilder {
      * @protected
      * @returns {OgResource}
      */
-    _resetStatus() {
+    resetStatus() {
         this.$status.creating = false;
         this.$status.updating = false;
         this.$status.deleting = false;
@@ -284,8 +361,8 @@ export default class OgResource extends OgQueryBuilder {
      */
     reset() {
         this.$response.reset();
-        this.$attributes = this.SCHEMA;
-        this._resetStatus();
+        this.$attributes = this.schema(1);
+        this.resetStatus();
         return this;
     }
 
@@ -296,7 +373,7 @@ export default class OgResource extends OgQueryBuilder {
      */
     abort() {
         this.$api.abort();
-        this._resetStatus();
+        this.resetStatus();
         return this;
     }
 
@@ -308,10 +385,15 @@ export default class OgResource extends OgQueryBuilder {
      * @returns {OgResource}
      */
     define(casts = {}, defaults = {}) {
+
         Object.keys(casts).forEach(path => {
             this.cast(path, casts[path]);
         });
+
         this.defaults(defaults);
+
+        this.$attributes = this.schema(1);
+
         return this;
     }
 
@@ -322,8 +404,9 @@ export default class OgResource extends OgQueryBuilder {
      * @returns {OgResource}
      */
     defaults(attributes) {
+
         this.$defaults = merge(this.$defaults, attributes);
-        this.$attributes = this.SCHEMA;
+
         return this;
     }
 
@@ -338,8 +421,11 @@ export default class OgResource extends OgQueryBuilder {
      * @returns {OgResource}
      */
     cast(path, type) {
+
         this.$casts[path] = type;
+
         this.fillable(path);
+
         return this;
     }
 
@@ -351,7 +437,9 @@ export default class OgResource extends OgQueryBuilder {
      * @returns {OgResource}
      */
     fillable(path) {
+
         this.$fillable.push(path);
+
         return this;
     }
 
@@ -362,14 +450,23 @@ export default class OgResource extends OgQueryBuilder {
      * @returns {OgResource}
      */
     fill(attributes) {
+
         if (!attributes) {
+
             return this;
+
         }
+
         this.$fillable.forEach(path => {
+
             const value = get(attributes, path, null);
+
             if (!value && this.filled(path)) {
+
                 return;
+
             }
+
             this.set(path, value);
         });
         return this;
@@ -384,15 +481,16 @@ export default class OgResource extends OgQueryBuilder {
      */
     set(path, value) {
 
-        if (!this.$fillable.includes(path)) {
+        if (!this.isFillable(path)) {
             return this;
         }
 
-        set(
-            this.$attributes,
+        set(this.$attributes, path, OgCast.cast(
+            this.$api,
             path,
-            OgCast.cast(this.$api, path, this.$casts, value),
-        );
+            this.$casts,
+            value,
+        ));
 
         return this;
     }
@@ -406,12 +504,13 @@ export default class OgResource extends OgQueryBuilder {
      */
     get(path, defaultValue = null) {
 
-        return get(
-            this.$attributes,
-            path,
-            get(this.$defaults, path, defaultValue)
-        );
+        const value = get(this.$attributes, path);
 
+        if (!value) {
+            return get(this.$defaults, path, defaultValue);
+        }
+
+        return value;
     }
 
     /**
@@ -444,6 +543,23 @@ export default class OgResource extends OgQueryBuilder {
         return out;
     }
 
+    isFillable(path) {
+
+        if (this.$fillable.includes(path)) {
+            return true;
+        }
+
+        if (this.isPathResource(path)) {
+            return this.get(OgCast.root(path)).isFillable(OgCast.suffix(path));
+        }
+
+        return false;
+    }
+
+    isPathResource(path) {
+        return OgCast.pathIsResource(path, this.$casts);
+    }
+
     /**
      * @returns {String|Number}
      */
@@ -451,69 +567,70 @@ export default class OgResource extends OgQueryBuilder {
         return this.get(this.$primaryKey);
     }
 
-    get SCHEMA() {
+    schema(deep = 1) {
 
         const schema = {};
 
-        Object.keys(this.$casts).forEach(path => {
+        Object
+            .keys(this.$casts)
+            .forEach(path => {
 
-            const castedValue = OgCast.cast(
-                this.$api,
-                path,
-                this.$casts,
-                get(this.$defaults, path, null),
-            );
+                const castedValue = OgCast.cast(
+                    this.$api,
+                    path,
+                    this.$casts,
+                    get(this.$defaults, path, null),
+                );
 
-            set(schema, path, castedValue);
-
-            const value = get(schema, path);
-
-            if (value instanceof OgResource) {
-                set(schema, path, value.SCHEMA);
-            }
-
-        });
+                set(schema, path, castedValue);
+            });
 
         return schema;
     }
 
-    get FAILED_BY_SESSION_EXPIRE() {
-        return this.$response.FAILED_BY_SESSION_EXPIRE;
+    get api() {
+        return this.$api;
     }
 
-    get FAILED_MESSAGE() {
-        return this.$response.message;
+    get status() {
+        return this.$status;
     }
 
-    get FAILED_CODE() {
-        return this.$response.status;
+    get response() {
+        return this.$response;
     }
 
-    get FAILED() {
-        return this.$response.failed;
+    get attributes() {
+        return this.$attributes;
     }
 
     get IS_SAVING() {
+
         return this.IS_CREATING || this.IS_UPDATING || this.IS_DELETING || false;
+
     }
 
     get IS_CREATING() {
+
         return this.$status.creating;
+
     }
 
     get IS_UPDATING() {
+
         return this.$status.updating;
+
     }
 
     get IS_FETCHING() {
+
         return this.$status.fetching;
+
     }
 
     get IS_DELETING() {
-        return this.$status.deleting;
-    }
 
-    get ATTRIBUTES() {
-        return this.$attributes;
+        return this.$status.deleting;
+
     }
 }

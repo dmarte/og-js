@@ -6,7 +6,7 @@ export default class OgQueryBuilder extends OgQueryString {
     }
 
     with(key) {
-        this.where('with', key,true);
+        this.where('with', key);
         return this;
     }
 
@@ -22,7 +22,7 @@ export default class OgQueryBuilder extends OgQueryString {
     }
 
     page(pageNum = 1) {
-        this.where('pagination.page', pageNum, true);
+        this.where('page', pageNum, true);
         return this;
     }
 

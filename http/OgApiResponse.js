@@ -142,6 +142,7 @@ export default class OgApiResponse {
             OgApiResponse.HTTP_SERVER_ERROR,
             OgApiResponse.HTTP_PAGE_EXPIRED,
             OgApiResponse.HTTP_UNPROCESSABLE_ENTITY,
+            OgApiResponse.HTTP_FORBIDDEN
         ].includes(this.$status);
     }
 
@@ -151,7 +152,7 @@ export default class OgApiResponse {
             OgApiResponse.HTTP_CREATED,
             OgApiResponse.HTTP_ACCEPTED,
             OgApiResponse.HTTP_NO_CONTENT,
-            OgApiResponse.HTTP_RESET_CONTENT,
+            OgApiResponse.HTTP_RESET_CONTENT
         ].includes(this.$status);
     }
 
@@ -211,6 +212,10 @@ export default class OgApiResponse {
 
     static get HTTP_UNAUTHORIZED() {
         return 401;
+    }
+
+    static get HTTP_FORBIDDEN() {
+        return 403;
     }
 
     static get HTTP_NOT_FOUND() {
