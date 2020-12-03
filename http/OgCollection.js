@@ -21,26 +21,7 @@ export default class OgCollection extends OgQueryBuilder {
     }
 
     static build(api, collection, items) {
-        return new Proxy(new collection(api).setItems(!Array.isArray(items) ? [] : items), {
-            // Allow use OgCollection as arrays
-            get(target, p, receiver) {
-
-                if (typeof p === 'string' && /^[\d]$/s.test(p)) {
-                    return target.findByIndex(p);
-                }
-
-                return Reflect.get(target, p, receiver);
-            },
-
-            set(target, p, value, receiver) {
-
-                if (typeof p === 'string' && /^[\d]$/s.test(p)) {
-                    return target.add(value, p);
-                }
-
-                return Reflect.set(target, p, receiver);
-            },
-        });
+        return new collection(api).setItems(!Array.isArray(items) ? [] : items);
     }
 
     abort() {
@@ -342,7 +323,7 @@ export default class OgCollection extends OgQueryBuilder {
 
         this.items.forEach((item) => items.push({
             value: _.get(item, pathValue || 'id', null),
-            text: _.get(item, pathText || 'text', null),
+            text: _.isFunction(pathText) ? pathText(item) : _.get(item, pathText || 'text', null),
         }));
 
         return items;

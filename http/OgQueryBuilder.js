@@ -11,6 +11,9 @@ export default class OgQueryBuilder extends OgQueryString {
     }
 
     query(value) {
+        if (!value) {
+            return this;
+        }
         this.where('q', value);
         return this;
     }

@@ -18,6 +18,7 @@ export default class OgResource extends OgQueryBuilder {
      */
     constructor(api, attributes = {}, path = '/') {
         super();
+        this.$key = Math.random();
         this.$api = api;
         this.$response = new OgApiResponse();
         this.$primaryKey = 'id';
@@ -40,42 +41,6 @@ export default class OgResource extends OgQueryBuilder {
         return new resource(api, attributes);
     }
 
-    /*
-     static build(api, resource, attributes) {
-
-     return new Proxy(new resource(api, attributes), {
-     get(target, property, receiver) {
-
-     if (isString(property) && target.isFillable(property)) {
-
-     return target.get(property);
-
-     }
-
-     return Reflect.get(target, property, receiver);
-     },
-
-     set(target, path, value) {
-
-
-     if (target.isFillable(path)) {
-     target.set(path, value);
-
-     } else {
-
-     Reflect.set(target, path, value);
-
-     }
-
-     return true;
-     },
-
-     ownKeys(target) {
-     return Object.keys(target);
-     },
-     });
-     }
-     */
 
     /**
      * Merge one resource with another resource.
@@ -145,7 +110,11 @@ export default class OgResource extends OgQueryBuilder {
 
         const url = [this.$path, id].join('/');
 
-        this.$response = await this.$api.get(url, this.toString());
+        const query = new super.constructor();
+
+        query.where(super.toJSON());
+
+        this.$response = await this.$api.get(url, query);
 
         if (this.$response.failed) {
             this.$status.fetching = false;
@@ -529,7 +498,9 @@ export default class OgResource extends OgQueryBuilder {
      * @returns {Object}
      */
     toJSON() {
-        const out = {};
+        const out = {
+            $key: this.$key
+        };
         Object.keys(this.$casts).forEach(path => {
             let value = this.get(path);
             if (value instanceof OgResourceCast || value instanceof OgResource) {
@@ -590,10 +561,6 @@ export default class OgResource extends OgQueryBuilder {
 
     get api() {
         return this.$api;
-    }
-
-    get status() {
-        return this.$status;
     }
 
     get response() {

@@ -42,7 +42,7 @@ export default class OgApiResponse {
      */
     fail(field) {
 
-        if(Array.isArray(field)) {
+        if (Array.isArray(field)) {
             return field.some((k) => this.fail(k));
         }
 
@@ -61,7 +61,7 @@ export default class OgApiResponse {
 
                 field = field.replace(/[*]/s, index);
 
-                return this.fail(field)
+                return this.fail(field);
 
             });
         }
@@ -106,21 +106,13 @@ export default class OgApiResponse {
 
     resolveResponseValidationKey(field) {
         if (!this.fail(field)) {
-            return { attribute: null, rule: null, value: null, message: null };
+            return { attribute: null, message: null };
         }
-        const key = this.$feedbacks[field];
-        // Get the rules
-        const rules = String(key)
-            .replace('validation.', '')
-            .split(',');
-        const rule = rules.shift();
-        // Any other value should be values separated by /
-        const value = rules.map(value => value.trim()).join(', ');
-
-        const attribute = field;
-        const message = rule;
-
-        return { attribute, message, value: value || '', rule };
+        const feedback = this.$feedbacks[field];
+        return {
+            attribute: field,
+            message: Array.isArray(feedback) ? feedback.pop() : feedback,
+        };
     }
 
     get message() {
@@ -142,7 +134,7 @@ export default class OgApiResponse {
             OgApiResponse.HTTP_SERVER_ERROR,
             OgApiResponse.HTTP_PAGE_EXPIRED,
             OgApiResponse.HTTP_UNPROCESSABLE_ENTITY,
-            OgApiResponse.HTTP_FORBIDDEN
+            OgApiResponse.HTTP_FORBIDDEN,
         ].includes(this.$status);
     }
 
@@ -152,7 +144,7 @@ export default class OgApiResponse {
             OgApiResponse.HTTP_CREATED,
             OgApiResponse.HTTP_ACCEPTED,
             OgApiResponse.HTTP_NO_CONTENT,
-            OgApiResponse.HTTP_RESET_CONTENT
+            OgApiResponse.HTTP_RESET_CONTENT,
         ].includes(this.$status);
     }
 

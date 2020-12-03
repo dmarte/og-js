@@ -1,4 +1,5 @@
 import OgResourceCast from './OgResourceCast';
+import { DateTime } from 'luxon';
 
 export default class OgResourceDateCast extends OgResourceCast {
     constructor(api, value) {
@@ -7,34 +8,17 @@ export default class OgResourceDateCast extends OgResourceCast {
         this.$format = DateTime.DATETIME_MED;
     }
 
-    set settings(format) {
-        this.$format = format;
+    setDateSql(value) {
+        return this.merge(DateTime.fromSQL(value));
     }
 
-    get settings() {
-        return this.$format;
+    setDateJS(date) {
+        return this.merge(DateTime.fromJSDate(date));
     }
 
-    get date() {
-        return this.$value.toJSDate();
-    }
-
-    set date(value) {
-        this.$value = DateTime.fromJSDate(value);
-    }
-
-    get empty() {
-        return !this.$value;
-    }
-
-    get formatted() {
-        if (!this.$value.isValid) {
-            return '';
-        }
-
-        return this.$value
-            .setLocale(this.$config.language)
-            .toLocaleString({ ...this.$format, hour12: true });
+    merge(dt) {
+        this.$value = dt;
+        return this;
     }
 
     useShortDate() {
@@ -52,6 +36,38 @@ export default class OgResourceDateCast extends OgResourceCast {
             return '';
         }
 
-        return this.$value.toSQL();
+        return this.$value.toSQLDate();
     }
+
+    get toDateSQL() {
+        return this.$value.toSQLDate();
+    }
+
+    get toDateJs() {
+        return this.$value.toJSDate();
+    }
+
+    get toFormatted() {
+        if (!this.$value.isValid) {
+            return '';
+        }
+
+        return this.$value
+            .setLocale(this.$config.language)
+            .toLocaleString({ ...this.$format, hour12: true });
+    }
+
+    set settings(format) {
+        this.$format = format;
+    }
+
+    get settings() {
+        return this.$format;
+    }
+
+    get isEmpty() {
+        return !this.$value;
+    }
+
+
 }
