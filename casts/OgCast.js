@@ -89,9 +89,7 @@ export default class OgCast {
                 output = value || '';
                 break;
             case OgCast.TYPE_ARRAY:
-                if (!Array.isArray(value)) {
-                    output = toArray(value);
-                }
+                output = toArray(value);
                 break;
             case OgCast.TYPE_OBJECT:
                 output = toPlainObject(value);

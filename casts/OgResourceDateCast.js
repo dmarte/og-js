@@ -1,11 +1,19 @@
 import OgResourceCast from './OgResourceCast';
 import { DateTime } from 'luxon';
 
+/**
+ * @property $value DateTime
+ */
 export default class OgResourceDateCast extends OgResourceCast {
     constructor(api, value) {
         super(api, null);
         this.$value = value ? DateTime.fromISO(value) : DateTime.utc();
         this.$format = DateTime.DATETIME_MED;
+    }
+
+    plus(object) {
+        this.$value = this.$value.plus(object);
+        return this;
     }
 
     setDateSql(value) {
@@ -32,11 +40,21 @@ export default class OgResourceDateCast extends OgResourceCast {
     }
 
     toString() {
-        if (this.empty) {
+        if (this.isEmpty) {
             return '';
         }
 
         return this.$value.toSQLDate();
+    }
+
+    format(language) {
+        if (!this.$value.isValid) {
+            return '';
+        }
+
+        return this.$value
+            .setLocale(language)
+            .toLocaleString({ ...this.$format, hour12: true });
     }
 
     get toDateSQL() {
@@ -45,16 +63,6 @@ export default class OgResourceDateCast extends OgResourceCast {
 
     get toDateJs() {
         return this.$value.toJSDate();
-    }
-
-    get toFormatted() {
-        if (!this.$value.isValid) {
-            return '';
-        }
-
-        return this.$value
-            .setLocale(this.$config.language)
-            .toLocaleString({ ...this.$format, hour12: true });
     }
 
     set settings(format) {
@@ -68,6 +76,5 @@ export default class OgResourceDateCast extends OgResourceCast {
     get isEmpty() {
         return !this.$value;
     }
-
 
 }

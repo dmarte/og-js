@@ -367,9 +367,13 @@ export default class OgCollection extends OgQueryBuilder {
 
     /**
      * @param {Object} item
-     * @returns {OgCollection}
+     * @returns {OgResource}
      */
     push(item) {
+        if(item instanceof this.$collector) {
+            this.$elements.push(item);
+            return item;
+        }
         return this.add(item);
     }
 

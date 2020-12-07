@@ -151,6 +151,8 @@ export default class OgAuth extends OgQueryBuilder {
 
         }
 
+        this.setUser(this.$response.data);
+
         this.$session.set(this.KEY_USER, this.$response.data);
 
         this.setUserFromSession();
