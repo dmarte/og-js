@@ -23,7 +23,7 @@ user.save();
 
 ```javascript
 // Also you can query like this:
-const user = new User(api, { name: 'John' });
+const user = new User(api, { name: 'John', email: 'john.doe@example.com' });
 
 user.where('email', 'john.doe@example.com').find();
 
