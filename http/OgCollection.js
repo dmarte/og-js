@@ -24,6 +24,10 @@ export default class OgCollection extends OgQueryBuilder {
         return new collection(api).setItems(!Array.isArray(items) ? [] : items);
     }
 
+    getNewCollectorInstance() {
+        return new this.$collector(this.$api, {});
+    }
+
     abort() {
         this.$api.abort();
         return this;
