@@ -11,6 +11,10 @@ export default class OgResourceDateCast extends OgResourceCast {
         this.$format = DateTime.DATETIME_MED;
     }
 
+    setToday() {
+        return this.setDateJS(new Date());
+    }
+
     plus(object) {
         this.$value = this.$value.plus(object);
         return this;
