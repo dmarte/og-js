@@ -6,6 +6,10 @@ export default class OgQueryBuilder extends OgQueryString {
     }
 
     with(key) {
+        if (Array.isArray(key)) {
+            keys.forEach((value) => this.where('with', value));
+            return;
+        }
         this.where('with', key);
         return this;
     }
